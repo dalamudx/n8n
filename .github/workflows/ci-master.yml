@@ -3,7 +3,7 @@ name: Test Master
 on:
   push:
     branches:
-      - master
+      # - master
       - 1.x
     paths-ignore:
       - packages/@n8n/task-runner-python/**
