@@ -11,7 +11,7 @@ class BuildContext {
 		let context = {
 			version: '',
 			release_type: '',
-			platforms: ['linux/amd64', 'linux/arm64'],
+			platforms: ['linux/amd64'],
 			push_to_ghcr: true,
 			push_to_docker: false,
 		};
@@ -19,13 +19,13 @@ class BuildContext {
 		if (version && releaseType) {
 			context.version = version;
 			context.release_type = releaseType;
-			context.push_to_docker = true;
+			context.push_to_docker = false;
 		} else {
 			switch (event) {
 				case 'schedule':
 					context.version = 'nightly';
 					context.release_type = 'nightly';
-					context.push_to_docker = true;
+					context.push_to_docker = false;
 					break;
 
 				case 'pull_request':
@@ -44,7 +44,7 @@ class BuildContext {
 					if (branch === 'master') {
 						context.version = 'dev';
 						context.release_type = 'dev';
-						context.push_to_docker = true;
+						context.push_to_docker = false;
 					} else {
 						context.version = `branch-${this.sanitizeBranch(branch)}`;
 						context.release_type = 'branch';
@@ -57,7 +57,7 @@ class BuildContext {
 					if (!version) throw new Error('Version required for release');
 					context.version = version;
 					context.release_type = releaseType || 'stable';
-					context.push_to_docker = true;
+					context.push_to_docker = false;
 					break;
 
 				default:
@@ -87,8 +87,8 @@ class BuildContext {
 
 	buildMatrix(platforms) {
 		const runners = {
-			'linux/amd64': 'blacksmith-4vcpu-ubuntu-2204',
-			'linux/arm64': 'blacksmith-4vcpu-ubuntu-2204-arm',
+			'linux/amd64': 'ubuntu-latest',
+			'linux/arm64': 'ubuntu-latest-arm',
 		};
 
 		const matrix = {
@@ -101,7 +101,7 @@ class BuildContext {
 			matrix.platform.push(shortName);
 			matrix.include.push({
 				platform: shortName,
-				runner: runners[platform],
+				runner: runners[platform] || 'ubuntu-latest',
 				docker_platform: platform,
 			});
 		}
