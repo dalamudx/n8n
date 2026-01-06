@@ -101,7 +101,7 @@ if (getValueMatch) {
         const newBody = `\t\t// 支持通过环境变量启用企业版功能
 \t\tif (process.env.N8N_ENTERPRISE === 'true') {
 \t\t\t// 对于配额相关的特性，返回无限配额
-\t\t\tif (feature.toString().includes('Limit') || feature.toString().includes('LIMIT')) {
+\t\t\tif (feature.toString().startsWith('quota:')) {
 \t\t\t\treturn UNLIMITED_LICENSE_QUOTA as FeatureReturnType[T];
 \t\t\t}
 \t\t\t// 对于 planName，返回 'Enterprise'

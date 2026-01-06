@@ -273,6 +273,14 @@ export class License implements LicenseProvider {
 	isLicensed(feature: BooleanLicenseFeature) {
 		// 支持通过环境变量启用企业版功能
 		if (process.env.N8N_ENTERPRISE === 'true') {
+			// SHOW_NON_PROD_BANNER 是反向逻辑特性，需要返回 false 来隐藏横幅
+			if (feature === 'feat:showNonProdBanner') {
+				return false;
+			}
+			// API_DISABLED 是反向逻辑特性，需要返回 false 来启用 API
+			if (feature === 'feat:apiDisabled') {
+				return false;
+			}
 			return true;
 		}
 		return this.manager?.hasFeatureEnabled(feature) ?? false;
@@ -406,7 +414,7 @@ export class License implements LicenseProvider {
 		// 支持通过环境变量启用企业版功能
 		if (process.env.N8N_ENTERPRISE === 'true') {
 			// 对于配额相关的特性，返回无限配额
-			if (feature.toString().includes('Limit') || feature.toString().includes('LIMIT')) {
+			if (feature.toString().startsWith('quota:')) {
 				return UNLIMITED_LICENSE_QUOTA as FeatureReturnType[T];
 			}
 			// 对于 planName，返回 'Enterprise'
@@ -414,6 +422,7 @@ export class License implements LicenseProvider {
 				return 'Enterprise' as FeatureReturnType[T];
 			}
 		}
+
 		return this.manager?.getFeatureValue(feature) as FeatureReturnType[T];
 	}
 
