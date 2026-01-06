@@ -1,0 +1,89 @@
+diff --git a/packages/cli/src/license.ts b/packages/cli/src/license.ts
+index caa9baf6..46197fd1 100644
+--- a/packages/cli/src/license.ts
++++ b/packages/cli/src/license.ts
+@@ -54,6 +54,27 @@ export class License implements LicenseProvider {
+ 		forceRecreate = false,
+ 		isCli = false,
+ 	}: { forceRecreate?: boolean; isCli?: boolean } = {}) {
++		// 检查企业版环境变量
++		if (process.env.N8N_ENTERPRISE === 'true') {
++			this.logger.info('');
++			this.logger.info('╔═══════════════════════════════════════════════════════════╗');
++			this.logger.info('║  🎉 N8N ENTERPRISE FEATURES ENABLED                      ║');
++			this.logger.info('║                                                           ║');
++			this.logger.info('║  All enterprise features are now available:              ║');
++			this.logger.info('║  ✓ LDAP & SAML Authentication                            ║');
++			this.logger.info('║  ✓ Source Control (Git)                                  ║');
++			this.logger.info('║  ✓ External Secrets Management                           ║');
++			this.logger.info('║  ✓ Advanced Permissions & Roles                          ║');
++			this.logger.info('║  ✓ Log Streaming                                         ║');
++			this.logger.info('║  ✓ Unlimited Users, Triggers & Variables                 ║');
++			this.logger.info('║  ✓ AI Assistant & AI Credits                             ║');
++			this.logger.info('║  ✓ And much more...                                      ║');
++			this.logger.info('║                                                           ║');
++			this.logger.info('║  Environment: N8N_ENTERPRISE=true                        ║');
++			this.logger.info('╚═══════════════════════════════════════════════════════════╝');
++			this.logger.info('');
++		}
++
+ 		if (this.manager && !forceRecreate) {
+ 			this.logger.warn('License manager already initialized or shutting down');
+ 			return;
+@@ -70,13 +91,13 @@ export class License implements LicenseProvider {
+ 		const autoRenewOffset = 72 * Time.hours.toSeconds;
+ 		const saveCertStr = isMainInstance
+ 			? async (value: TLicenseBlock) => await this.saveCertStr(value)
+-			: async () => {};
++			: async () => { };
+ 		const onFeatureChange = isMainInstance
+ 			? async () => await this.onFeatureChange()
+-			: async () => {};
++			: async () => { };
+ 		const onLicenseRenewed = isMainInstance
+ 			? async () => await this.onLicenseRenewed()
+-			: async () => {};
++			: async () => { };
+ 		const collectUsageMetrics = isMainInstance
+ 			? async () => await this.licenseMetricsService.collectUsageMetrics()
+ 			: async () => [];
+@@ -250,6 +271,10 @@ export class License implements LicenseProvider {
+ 	}
+ 
+ 	isLicensed(feature: BooleanLicenseFeature) {
++		// 支持通过环境变量启用企业版功能
++		if (process.env.N8N_ENTERPRISE === 'true') {
++			return true;
++		}
+ 		return this.manager?.hasFeatureEnabled(feature) ?? false;
+ 	}
+ 
+@@ -378,6 +403,17 @@ export class License implements LicenseProvider {
+ 	}
+ 
+ 	getValue<T extends keyof FeatureReturnType>(feature: T): FeatureReturnType[T] {
++		// 支持通过环境变量启用企业版功能
++		if (process.env.N8N_ENTERPRISE === 'true') {
++			// 对于配额相关的特性，返回无限配额
++			if (feature.toString().includes('Limit') || feature.toString().includes('LIMIT')) {
++				return UNLIMITED_LICENSE_QUOTA as FeatureReturnType[T];
++			}
++			// 对于 planName，返回 'Enterprise'
++			if (feature === 'planName') {
++				return 'Enterprise' as FeatureReturnType[T];
++			}
++		}
+ 		return this.manager?.getFeatureValue(feature) as FeatureReturnType[T];
+ 	}
+ 
+@@ -448,6 +484,10 @@ export class License implements LicenseProvider {
+ 	}
+ 
+ 	getPlanName(): string {
++		// 支持通过环境变量启用企业版功能
++		if (process.env.N8N_ENTERPRISE === 'true') {
++			return 'Enterprise';
++		}
+ 		return this.getValue('planName') ?? 'Community';
+ 	}
+ 

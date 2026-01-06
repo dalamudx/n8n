@@ -1,0 +1,129 @@
+diff --git a/packages/frontend/editor-ui/src/features/core/auth/views/SettingsPersonalView.vue b/packages/frontend/editor-ui/src/features/core/auth/views/SettingsPersonalView.vue
+index ad8b0a96..71206985 100644
+--- a/packages/frontend/editor-ui/src/features/core/auth/views/SettingsPersonalView.vue
++++ b/packages/frontend/editor-ui/src/features/core/auth/views/SettingsPersonalView.vue
+@@ -1,7 +1,7 @@
+ <script lang="ts" setup>
+ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+ import { ROLE, type Role } from '@n8n/api-types';
+-import { useI18n } from '@n8n/i18n';
++import { useI18n, loadLanguage } from '@n8n/i18n';
+ import { useToast } from '@/app/composables/useToast';
+ import { useDocumentTitle } from '@/app/composables/useDocumentTitle';
+ import type { IFormInputs, ThemeOption } from '@/Interface';
+@@ -24,6 +24,7 @@ import type { BaseTextKey } from '@n8n/i18n';
+ import { useSSOStore } from '@/features/settings/sso/sso.store';
+ import type { ConfirmPasswordModalEvents } from '../auth.eventBus';
+ import { confirmPasswordEventBus } from '../auth.eventBus';
++import { useRootStore } from '@n8n/stores/useRootStore';
+ 
+ import {
+ 	N8nAvatar,
+@@ -60,6 +61,7 @@ type RoleContent = {
+ const i18n = useI18n();
+ const { showToast, showError } = useToast();
+ const documentTitle = useDocumentTitle();
++const rootStore = useRootStore();
+ 
+ const hasAnyBasicInfoChanges = ref<boolean>(false);
+ const formInputs = ref<null | IFormInputs>(null);
+@@ -81,6 +83,17 @@ const themeOptions = ref<Array<{ name: ThemeOption; label: BaseTextKey }>>([
+ 	},
+ ]);
+ 
++// 添加语言相关状态
++const currentSelectedLanguage = ref(
++	localStorage.getItem('n8n-user-language') || rootStore.defaultLocale,
++);
++const hasAnyLanguageChanges = ref(false);
++
++const languageOptions = ref([
++	{ name: 'en', label: 'English' },
++	{ name: 'zh-CN', label: '中文' },
++]);
++
+ const uiStore = useUIStore();
+ const usersStore = useUsersStore();
+ const settingsStore = useSettingsStore();
+@@ -115,13 +128,18 @@ const isMfaFeatureEnabled = computed((): boolean => {
+ });
+ 
+ const hasAnyPersonalisationChanges = computed((): boolean => {
+-	return currentSelectedTheme.value !== uiStore.theme;
++	return currentSelectedTheme.value !== uiStore.theme || hasAnyLanguageChanges.value;
+ });
+ 
+ const hasAnyChanges = computed(() => {
+ 	return hasAnyBasicInfoChanges.value || hasAnyPersonalisationChanges.value;
+ });
+ 
++// 添加语言变化处理函数
++function onLanguageChange() {
++	hasAnyLanguageChanges.value = true;
++}
++
+ const roles = computed<Record<Role, RoleContent>>(() => ({
+ 	[ROLE.Default]: {
+ 		name: i18n.baseText('auth.roles.default'),
+@@ -279,6 +297,23 @@ async function updatePersonalisationSettings() {
+ 	}
+ 
+ 	uiStore.setTheme(currentSelectedTheme.value);
++	
++	// 处理语言变化
++	if (hasAnyLanguageChanges.value) {
++		try {
++			if (currentSelectedLanguage.value !== 'en') {
++				const messages = await import(`@n8n/i18n/locales/${currentSelectedLanguage.value}.json`);
++				loadLanguage(currentSelectedLanguage.value, messages.default);
++			}
++			
++			rootStore.setDefaultLocale(currentSelectedLanguage.value);
++			localStorage.setItem('n8n-user-language', currentSelectedLanguage.value);
++			hasAnyLanguageChanges.value = false;
++		} catch (error) {
++			console.error('Failed to load language:', error);
++			showError(error, 'Failed to update language');
++		}
++	}
+ }
+ 
+ function onSaveClick() {
+@@ -453,6 +488,28 @@ onBeforeUnmount(() => {
+ 				</N8nInputLabel>
+ 			</div>
+ 		</div>
++		
++		<!-- 添加语言选择 -->
++		<div class="mt-m">
++			<N8nInputLabel :label="i18n.baseText('settings.personal.language')">
++				<N8nSelect
++					v-model="currentSelectedLanguage"
++					:class="$style.languageSelect"
++					data-test-id="language-select"
++					size="small"
++					filterable
++					@update:model-value="onLanguageChange"
++				>
++					<N8nOption
++						v-for="item in languageOptions"
++						:key="item.name"
++						:label="item.label"
++						:value="item.name"
++					>
++					</N8nOption>
++				</N8nSelect>
++			</N8nInputLabel>
++		</div>
+ 		<div>
+ 			<N8nButton
+ 				float="right"
+@@ -530,4 +587,8 @@ onBeforeUnmount(() => {
+ .themeSelect {
+ 	max-width: 50%;
+ }
++
++.languageSelect {
++	max-width: 50%;
++}
+ </style>
