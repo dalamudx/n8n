@@ -3,7 +3,7 @@
 # GitHub-hosted runners use standard GitHub Actions caching.
 
 name: 'Node.js Build Setup'
-description: 'Configures Node.js with pnpm, installs dependencies, enables Turborepo caching, (optional) sets up Docker layer caching, and builds the project or an optional command.'
+description: 'Configures Node.js with pnpm, installs dependencies, enables Turborepo caching, and builds the project.'
 
 inputs:
   node-version:
@@ -11,12 +11,12 @@ inputs:
     required: false
     default: '22.x'
   enable-docker-cache:
-    description: 'Whether to set up Blacksmith Buildx for Docker layer caching (Blacksmith runners only).'
+    description: 'Skipped - Docker cache setup (Blacksmith only)'
     required: false
     default: 'false'
     type: boolean
   build-command:
-    description: 'Command to execute for building the project or an optional command. Leave empty to skip build step.'
+    description: 'Command to execute for building the project.'
     required: false
     default: 'pnpm build'
     type: string
@@ -25,25 +25,29 @@ runs:
   using: 'composite'
   steps:
     - name: Setup pnpm
-      uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+      uses: pnpm/action-setup@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v6.1.0
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
         cache: 'pnpm'
 
     - name: Install Dependencies
-      run: pnpm install --frozen-lockfile
+      run: |
+        pnpm install --frozen-lockfile
       shell: bash
 
     - name: Configure Turborepo Cache
-      uses: rharkor/caching-for-turbo@cda201ff2b32699a2ae9f59704db029e3dde4fbd # v2.3.5
+      uses: rharkor/caching-for-turbo@v2.3.5
 
-    - name: Setup Docker Builder for Docker Cache
+    - name: Setup Docker Builder
       if: ${{ inputs.enable-docker-cache == 'true' }}
-      uses: useblacksmith/setup-docker-builder@53647ab5afe8827af5623b35bd4302eabd41619f # v1.2.0
+      uses: docker/setup-buildx-action@v3
 
     - name: Build Project
+      if: ${{ inputs.build-command != '' }}
       run: ${{ inputs.build-command }}
       shell: bash
+      env:
+        NODE_OPTIONS: '--max-old-space-size=6144'
