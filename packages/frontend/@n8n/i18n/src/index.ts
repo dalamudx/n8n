@@ -394,7 +394,7 @@ export class I18nClass {
 const loadedLanguages: string[] = [];
 
 export function setLanguage(locale: string) {
-	i18nInstance.global.locale.value = locale as 'en';
+	i18nInstance.global.locale.value = locale as any;
 	document.querySelector('html')!.setAttribute('lang', locale);
 
 	// Invalidate cached baseText results on locale change
