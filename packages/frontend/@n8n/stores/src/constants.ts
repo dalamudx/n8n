@@ -48,3 +48,5 @@ export const STORES = {
 	CHAT_HUB: 'chatHub',
 	EXPERIMENT_EMPTY_STATE_BUILDER_PROMPT: 'emptyStateBuilderPrompt',
 } as const;
+
+export const LOCAL_STORAGE_USER_LANGUAGE = 'n8n-user-language';
