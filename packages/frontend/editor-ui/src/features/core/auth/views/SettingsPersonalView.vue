@@ -214,6 +214,10 @@ function onInput() {
 	hasAnyBasicInfoChanges.value = true;
 }
 
+function onLanguageChange() {
+	hasAnyLanguageChanges.value = true;
+}
+
 function onReadyToSubmit(ready: boolean) {
 	readyToSubmit.value = ready;
 }
