@@ -1,0 +1,138 @@
+name: 'Release'
+
+on:
+  push:
+    branches:
+      - 'release/*'
+  workflow_dispatch:
+    inputs:
+      n8n_version:
+        description: 'n8n version to build (optional, defaults to package.json)'
+        required: false
+
+jobs:
+  determine-info:
+    name: Determine Release Info
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.info.outputs.version }}
+      track: ${{ steps.info.outputs.track }}
+      release_type: ${{ steps.info.outputs.release_type }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Determine version
+        id: info
+        run: |
+          if [ -n "${{ github.event.inputs.n8n_version }}" ]; then
+            VERSION="${{ github.event.inputs.n8n_version }}"
+          else
+            VERSION=$(jq -r '.version' packages/cli/package.json)
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          
+          if echo "$VERSION" | grep -q '\-rc\.'; then
+            echo "track=beta" >> "$GITHUB_OUTPUT"
+            echo "release_type=rc" >> "$GITHUB_OUTPUT"
+          else
+            echo "track=stable" >> "$GITHUB_OUTPUT"
+            echo "release_type=stable" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-and-push:
+    name: Build and Push Docker Images
+    needs: determine-info
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js and Build n8n
+        uses: ./.github/actions/setup-nodejs
+        with:
+          build-command: node scripts/build-n8n.mjs
+        env:
+          RELEASE: ${{ needs.determine-info.outputs.version }}
+          N8N_SKIP_LICENSES: true
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push n8n Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/images/n8n/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            N8N_VERSION=${{ needs.determine-info.outputs.version }}
+            N8N_RELEASE_TYPE=${{ needs.determine-info.outputs.release_type }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/n8n:${{ needs.determine-info.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/n8n:${{ needs.determine-info.outputs.track }}
+
+      - name: Build and push Task Runners (Alpine)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/images/runners/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            N8N_VERSION=${{ needs.determine-info.outputs.version }}
+            N8N_RELEASE_TYPE=${{ needs.determine-info.outputs.release_type }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/runners:${{ needs.determine-info.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/runners:${{ needs.determine-info.outputs.track }}
+
+      - name: Build and push Task Runners (Distroless)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/images/runners/Dockerfile.distroless
+          platforms: linux/amd64,linux/arm64
+          push: true
+          build-args: |
+            N8N_VERSION=${{ needs.determine-info.outputs.version }}
+            N8N_RELEASE_TYPE=${{ needs.determine-info.outputs.release_type }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/runners:${{ needs.determine-info.outputs.version }}-distroless
+            ghcr.io/${{ github.repository_owner }}/runners:${{ needs.determine-info.outputs.track }}-distroless
+
+  create-release:
+    name: Create GitHub Release
+    needs: [determine-info, build-and-push]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: n8n@${{ needs.determine-info.outputs.version }}
+          name: n8n@${{ needs.determine-info.outputs.version }}
+          prerelease: ${{ needs.determine-info.outputs.track == 'beta' }}
+          makeLatest: ${{ needs.determine-info.outputs.track == 'stable' }}
+          generateReleaseNotes: true
+          body: |
+            Docker images pushed to GHCR:
+            - `ghcr.io/${{ github.repository_owner }}/n8n:${{ needs.determine-info.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/runners:${{ needs.determine-info.outputs.version }}`
+            - `ghcr.io/${{ github.repository_owner }}/runners:${{ needs.determine-info.outputs.version }}-distroless`
