@@ -17,6 +17,10 @@
 				"N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT",
 				"N8N_RUNNERS_TASK_TIMEOUT",
 				"N8N_RUNNERS_MAX_CONCURRENCY",
+				"N8N_RUNNERS_MAX_PAYLOAD",
+				"N8N_BLOCK_RUNNER_ENV_ACCESS",
+				"NODE_FUNCTION_ALLOW_EXTERNAL",
+				"NODE_FUNCTION_ALLOW_BUILTIN",
 				"N8N_SENTRY_DSN",
 				"N8N_VERSION",
 				"ENVIRONMENT",
@@ -24,8 +28,6 @@
 				"HOME"
 			],
 			"env-overrides": {
-				"NODE_FUNCTION_ALLOW_BUILTIN": "crypto",
-				"NODE_FUNCTION_ALLOW_EXTERNAL": "moment",
 				"N8N_RUNNERS_HEALTH_CHECK_SERVER_HOST": "0.0.0.0"
 			}
 		},
@@ -33,7 +35,14 @@
 			"runner-type": "python",
 			"workdir": "/home/runner",
 			"command": "/opt/runners/task-runner-python/.venv/bin/python",
-			"args": ["-I", "-B", "-X", "disable_remote_debug", "-m", "src.main"],
+			"args": [
+				"-I",
+				"-B",
+				"-X",
+				"disable_remote_debug",
+				"-m",
+				"src.main"
+			],
 			"health-check-server-port": "5682",
 			"allowed-env": [
 				"PATH",
@@ -41,15 +50,16 @@
 				"N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT",
 				"N8N_RUNNERS_TASK_TIMEOUT",
 				"N8N_RUNNERS_MAX_CONCURRENCY",
+				"N8N_RUNNERS_STDLIB_ALLOW",
+				"N8N_RUNNERS_EXTERNAL_ALLOW",
+				"N8N_RUNNERS_BUILTINS_DENY",
+				"N8N_RUNNERS_MAX_PAYLOAD",
+				"N8N_BLOCK_RUNNER_ENV_ACCESS",
 				"N8N_SENTRY_DSN",
 				"N8N_VERSION",
 				"ENVIRONMENT",
 				"DEPLOYMENT_NAME"
-			],
-			"env-overrides": {
-				"N8N_RUNNERS_STDLIB_ALLOW": "",
-				"N8N_RUNNERS_EXTERNAL_ALLOW": ""
-			}
+			]
 		}
 	]
 }
