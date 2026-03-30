@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { ROLE, type Role } from '@n8n/api-types';
-import { useI18n } from '@n8n/i18n';
+import { useI18n, loadLanguage } from '@n8n/i18n';
 import { useToast } from '@/app/composables/useToast';
 import { useDocumentTitle } from '@/app/composables/useDocumentTitle';
 import type { IFormInputs, ThemeOption } from '@/Interface';
@@ -22,6 +22,8 @@ import type { MfaModalEvents } from '../auth.eventBus';
 import { promptMfaCodeBus } from '../auth.eventBus';
 import type { BaseTextKey } from '@n8n/i18n';
 import { useSSOStore } from '@/features/settings/sso/sso.store';
+import { useRootStore } from '@n8n/stores/useRootStore';
+import { LOCAL_STORAGE_USER_LANGUAGE } from '@n8n/stores/constants';
 import type { ConfirmPasswordModalEvents } from '../auth.eventBus';
 import { confirmPasswordEventBus } from '../auth.eventBus';
 
@@ -60,12 +62,24 @@ type RoleContent = {
 const i18n = useI18n();
 const { showToast, showError } = useToast();
 const documentTitle = useDocumentTitle();
+const rootStore = useRootStore();
 
 const hasAnyBasicInfoChanges = ref<boolean>(false);
 const formInputs = ref<null | IFormInputs>(null);
 const formBus = createFormEventBus();
 const readyToSubmit = ref(false);
 const currentSelectedTheme = ref(useUIStore().theme);
+
+// 添加语言相关状态
+const currentSelectedLanguage = ref(
+	localStorage.getItem(LOCAL_STORAGE_USER_LANGUAGE) || rootStore.defaultLocale,
+);
+const hasAnyLanguageChanges = ref(false);
+
+const languageOptions = ref([
+	{ name: 'en', label: 'English' },
+	{ name: 'zh-CN', label: '中文' },
+]);
 const themeOptions = ref<Array<{ name: ThemeOption; label: BaseTextKey }>>([
 	{
 		name: 'system',
@@ -115,7 +129,7 @@ const isMfaFeatureEnabled = computed((): boolean => {
 });
 
 const hasAnyPersonalisationChanges = computed((): boolean => {
-	return currentSelectedTheme.value !== uiStore.theme;
+	return currentSelectedTheme.value !== uiStore.theme || hasAnyLanguageChanges.value;
 });
 
 const hasAnyChanges = computed(() => {
@@ -279,6 +293,23 @@ async function updatePersonalisationSettings() {
 	}
 
 	uiStore.setTheme(currentSelectedTheme.value);
+
+	// 处理语言变化
+	if (hasAnyLanguageChanges.value) {
+		try {
+			if (currentSelectedLanguage.value !== 'en') {
+				const messages = await import(`@n8n/i18n/locales/${currentSelectedLanguage.value}.json`);
+				loadLanguage(currentSelectedLanguage.value, messages.default);
+			}
+
+			rootStore.setDefaultLocale(currentSelectedLanguage.value);
+			localStorage.setItem(LOCAL_STORAGE_USER_LANGUAGE, currentSelectedLanguage.value);
+			hasAnyLanguageChanges.value = false;
+		} catch (error) {
+			console.error('Failed to load language:', error);
+			showError(error, 'Failed to update language');
+		}
+	}
 }
 
 function onSaveClick() {
@@ -453,6 +484,29 @@ onBeforeUnmount(() => {
 				</N8nInputLabel>
 			</div>
 		</div>
+
+		<!-- 添加语言选择 -->
+		<div class="mt-m">
+			<N8nInputLabel :label="i18n.baseText('settings.personal.language')">
+				<N8nSelect
+					v-model="currentSelectedLanguage"
+					:class="$style.languageSelect"
+					data-test-id="language-select"
+					size="small"
+					filterable
+					@update:model-value="onLanguageChange"
+				>
+					<N8nOption
+						v-for="item in languageOptions"
+						:key="item.name"
+						:label="item.label"
+						:value="item.name"
+					>
+					</N8nOption>
+				</N8nSelect>
+			</N8nInputLabel>
+		</div>
+
 		<div>
 			<N8nButton
 				float="right"
