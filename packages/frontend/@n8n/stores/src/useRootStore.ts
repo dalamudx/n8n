@@ -2,7 +2,7 @@ import { randomString, setGlobalState } from 'n8n-workflow';
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 
-import { STORES } from './constants';
+import { STORES, LOCAL_STORAGE_USER_LANGUAGE } from './constants';
 import { getConfigFromMetaTag } from './metaTagConfig';
 
 const { VUE_APP_URL_BASE_API } = import.meta.env;
@@ -50,7 +50,7 @@ export const useRootStore = defineStore(STORES.ROOT, () => {
 	const state = ref<RootStoreState>({
 		baseUrl: VUE_APP_URL_BASE_API ?? window.BASE_PATH,
 		restEndpoint: getConfigFromMetaTag('rest-endpoint') ?? 'rest',
-		defaultLocale: 'en',
+		defaultLocale: localStorage.getItem(LOCAL_STORAGE_USER_LANGUAGE) ?? 'en',
 		endpointForm: 'form',
 		endpointFormTest: 'form-test',
 		endpointFormWaiting: 'form-waiting',
