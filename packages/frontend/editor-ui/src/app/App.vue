@@ -19,7 +19,7 @@ import { useNDVStore } from '@/features/ndv/shared/ndv.store';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import LoadingView from '@/app/views/LoadingView.vue';
 import { locale } from '@n8n/design-system';
-import { setLanguage } from '@n8n/i18n';
+import { loadLanguage, setLanguage } from '@n8n/i18n';
 // Note: no need to import en.json here; default 'en' is handled via setLanguage
 import { useRootStore } from '@n8n/stores/useRootStore';
 import axios from 'axios';
@@ -50,7 +50,10 @@ useTelemetryInitializer();
 useBackendStatus();
 
 const loading = ref(true);
-const defaultLocale = computed(() => rootStore.defaultLocale);
+const defaultLocale = computed(() => {
+	const savedLanguage = localStorage.getItem('n8n-user-language');
+	return savedLanguage || rootStore.defaultLocale;
+});
 const isDemoMode = computed(() => route.name === VIEWS.DEMO);
 const hasContentFooter = ref(false);
 
@@ -59,6 +62,18 @@ useTelemetryContext({ ndv_source: computed(() => ndvStore.lastSetActiveNodeSourc
 onMounted(async () => {
 	setAppZIndexes();
 	logHiringBanner();
+
+	// 初始化语言设置
+	const savedLanguage = localStorage.getItem('n8n-user-language');
+	if (savedLanguage && savedLanguage !== 'en') {
+		try {
+			const messages = await import(`@n8n/i18n/locales/${savedLanguage}.json`);
+			loadLanguage(savedLanguage, messages.default);
+		} catch (error) {
+			console.warn('Failed to load saved language:', error);
+			localStorage.removeItem('n8n-user-language');
+		}
+	}
 	loading.value = false;
 });
 
@@ -97,7 +112,19 @@ watch(
 watch(
 	defaultLocale,
 	async (newLocale) => {
-		setLanguage(newLocale);
+		// 动态加载语言文件
+		if (newLocale !== 'en') {
+			try {
+				const messages = await import(`@n8n/i18n/locales/${newLocale}.json`);
+				loadLanguage(newLocale, messages.default);
+			} catch (error) {
+				console.warn(`Failed to load locale ${newLocale}:`, error);
+				setLanguage('en');
+				return;
+			}
+		} else {
+			setLanguage(newLocale);
+		}
 
 		axios.defaults.headers.common['Accept-Language'] = newLocale;
 
