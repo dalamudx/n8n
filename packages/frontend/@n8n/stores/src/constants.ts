@@ -54,3 +54,5 @@ export const STORES = {
 	FOCUSED_NODES: 'focusedNodes',
 	AI_GATEWAY: 'aiGateway',
 } as const;
+
+export const LOCAL_STORAGE_USER_LANGUAGE = 'n8n-user-language';
