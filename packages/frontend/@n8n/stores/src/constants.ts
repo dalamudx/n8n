@@ -45,3 +45,5 @@ export const STORES = {
 	BANNERS: 'banners',
 	CONSENT: 'consent',
 } as const;
+
+export const LOCAL_STORAGE_USER_LANGUAGE = 'n8n-user-language';
