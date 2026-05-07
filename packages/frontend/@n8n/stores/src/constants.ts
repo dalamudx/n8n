@@ -55,3 +55,5 @@ export const STORES = {
 	FAVORITES: 'favorites',
 	AI_GATEWAY: 'aiGateway',
 } as const;
+
+export const LOCAL_STORAGE_USER_LANGUAGE = 'n8n-user-language';
