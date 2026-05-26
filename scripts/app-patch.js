@@ -348,4 +348,21 @@ patchFile(
     ]
 );
 
+// ===== 7. Docker 镜像构建补丁 =====
+patchFile(
+	path.join(PROJECT_ROOT, 'docker/images/n8n/Dockerfile'),
+	'Docker Image',
+	[
+		{
+			name: '确保 /usr/local/bin 存在',
+			check: 'install -d -m 0755 /usr/local/bin',
+			pattern:
+				/RUN ln -s \/usr\/local\/lib\/node_modules\/n8n\/bin\/n8n \/usr\/local\/bin\/n8n && \\\n/,
+			replacement:
+				'RUN install -d -m 0755 /usr/local/bin && \\\n' +
+				'    ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n && \\\n',
+		},
+	],
+);
+
 console.log('✅ 所有通用补丁处理完成！');
