@@ -54,6 +54,28 @@ export class License implements LicenseProvider {
 		forceRecreate = false,
 		isCli = false,
 	}: { forceRecreate?: boolean; isCli?: boolean } = {}) {
+		// 支持通过环境变量启用企业版功能
+		if (process.env.N8N_ENTERPRISE === 'true') {
+			this.logger.info('');
+			this.logger.info('╔═══════════════════════════════════════════════════════════╗');
+			this.logger.info('║  🎉 N8N ENTERPRISE FEATURES ENABLED                      ║');
+			this.logger.info('║                                                           ║');
+			this.logger.info('║  All enterprise features are now available:              ║');
+			this.logger.info('║  ✓ LDAP & SAML Authentication                            ║');
+			this.logger.info('║  ✓ Source Control (Git)                                  ║');
+			this.logger.info('║  ✓ External Secrets Management                           ║');
+			this.logger.info('║  ✓ Advanced Permissions & Roles                          ║');
+			this.logger.info('║  ✓ Log Streaming                                         ║');
+			this.logger.info('║  ✓ Unlimited Users, Triggers & Variables                 ║');
+			this.logger.info('║  ✓ AI Assistant & AI Credits                             ║');
+			this.logger.info('║  ✓ And much more...                                      ║');
+			this.logger.info('║                                                           ║');
+			this.logger.info('║  Environment: N8N_ENTERPRISE=true                        ║');
+			this.logger.info('╚═══════════════════════════════════════════════════════════╝');
+			this.logger.info('');
+			return;
+		}
+
 		if (this.manager && !forceRecreate) {
 			this.logger.warn('License manager already initialized or shutting down');
 			return;
@@ -252,6 +274,18 @@ export class License implements LicenseProvider {
 	}
 
 	isLicensed(feature: BooleanLicenseFeature) {
+		// 支持通过环境变量启用企业版功能
+		if (process.env.N8N_ENTERPRISE === 'true') {
+			// SHOW_NON_PROD_BANNER 是反向逻辑特性，需要返回 false 来隐藏横幅
+			if (feature === 'feat:showNonProdBanner') {
+				return false;
+			}
+			// API_DISABLED 是反向逻辑特性，需要返回 false 来启用 API
+			if (feature === 'feat:apiDisabled') {
+				return false;
+			}
+			return true;
+		}
 		return this.manager?.hasFeatureEnabled(feature) ?? false;
 	}
 
@@ -375,6 +409,17 @@ export class License implements LicenseProvider {
 	}
 
 	getValue<T extends keyof FeatureReturnType>(feature: T): FeatureReturnType[T] {
+		// 支持通过环境变量启用企业版功能
+		if (process.env.N8N_ENTERPRISE === 'true') {
+			// 对于配额相关的特性，返回无限配额
+			if (feature.toString().startsWith('quota:')) {
+				return UNLIMITED_LICENSE_QUOTA as FeatureReturnType[T];
+			}
+			// 对于 planName，返回 'Enterprise'
+			if (feature === 'planName') {
+				return 'Enterprise' as FeatureReturnType[T];
+			}
+		}
 		return this.manager?.getFeatureValue(feature) as FeatureReturnType[T];
 	}
 
