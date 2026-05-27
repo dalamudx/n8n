@@ -6,7 +6,7 @@ FROM node:${NODE_VERSION}-alpine3.22 AS builder
 COPY ./compiled /usr/local/lib/node_modules/n8n
 RUN apk add --no-cache python3 make g++ && \
     cd /usr/local/lib/node_modules/n8n && \
-    npm rebuild sqlite3 isolated-vm
+    npm rebuild sqlite3
 
 FROM n8nio/base:${NODE_VERSION}
 
@@ -21,7 +21,8 @@ WORKDIR /home/node
 COPY --from=builder /usr/local/lib/node_modules/n8n /usr/local/lib/node_modules/n8n
 COPY docker/images/n8n/docker-entrypoint.sh /
 
-RUN ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n && \
+RUN install -d -m 0755 /usr/local/bin && \
+    ln -s /usr/local/lib/node_modules/n8n/bin/n8n /usr/local/bin/n8n && \
     mkdir -p /home/node/.n8n && \
     chown -R node:node /home/node && \
     rm -rf /root/.npm /tmp/*
