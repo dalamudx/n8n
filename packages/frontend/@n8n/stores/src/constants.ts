@@ -62,3 +62,5 @@ export const STORES = {
 	AI_GATEWAY: 'aiGateway',
 	EVALUATIONS_WIZARD_SIDEPANEL: 'evaluationsWizardSidepanel',
 } as const;
+
+export const LOCAL_STORAGE_USER_LANGUAGE = 'n8n-user-language';
