@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { ref, computed, reactive, onMounted, onBeforeUnmount } from 'vue';
 import { ROLE, type Role, type ChangeEmailRequestDto } from '@n8n/api-types';
-import { useI18n } from '@n8n/i18n';
+import { useI18n, loadLanguage } from '@n8n/i18n';
 import { useToast } from '@n8n/composables/useToast';
 import { useDocumentTitle } from '@/app/composables/useDocumentTitle';
 import type { ThemeOption } from '@/Interface';
@@ -27,6 +27,8 @@ import type {
 } from '../auth.eventBus';
 import { confirmPasswordEventBus, promptMfaCodeBus } from '../auth.eventBus';
 import { useSSOStore } from '@/features/settings/sso/sso.store';
+import { useRootStore } from '@n8n/stores/useRootStore';
+import { LOCAL_STORAGE_USER_LANGUAGE } from '@n8n/stores/constants';
 
 import type { SelectOptionBase, SelectValue } from '@n8n/design-system';
 import {
@@ -55,6 +57,7 @@ type RoleContent = {
 const i18n = useI18n();
 const { showMessage, showToast, showError } = useToast();
 const documentTitle = useDocumentTitle();
+const rootStore = useRootStore();
 
 const uiStore = useUIStore();
 const usersStore = useUsersStore();
